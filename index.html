@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日喜愛股票</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #e2e8f0;
+      --accent: #38bdf8;
+      --success: #ef4444;
+      --danger: #22c55e;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 8px 12px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    p {
+      margin: 1px 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .controls label {
+      font-size: 0.8rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .controls input {
+      width: 10ch;
+      padding: 4px 6px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text);
+      font-size: 0.8rem;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      background: var(--accent);
+      color: #020617;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(15, 23, 42, 0.85);
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 0.8rem;
+    }
+
+    thead {
+      background: rgba(30, 41, 59, 0.95);
+    }
+
+    th,
+    td {
+      padding: 1px 4px;
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      white-space: nowrap;
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.8rem;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    td:nth-child(3),
+    td:nth-child(4),
+    td:nth-child(5),
+    td:nth-child(6) {
+      text-align: right;
+    }
+
+    .note-input {
+      width: 100%;
+      padding: 1px 2px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 4px;
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text);
+      font-size: 0.75rem;
+    }
+
+    textarea.note-input {
+      min-width: 250px;
+      height: auto;
+      min-height: unset;
+      resize: none;
+      font-family: inherit;
+      overflow: hidden;
+      rows: 1;
+    }
+
+    input[type="number"].note-input {
+      width: 12ch;
+      min-width: unset;
+      text-align: right;
+    }
+
+    /* 讓備註欄盡可能佔滿剩下的寬度 */
+    td:nth-child(7) {
+      width: 100%;
+    }
+
+    .note-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .status-positive {
+      color: var(--success);
+    }
+
+    .status-negative {
+      color: var(--danger);
+    }
+
+    .status-neutral {
+      color: var(--muted);
+    }
+
+    footer {
+      margin-top: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    footer p {
+      margin: 0;
+    }
+
+    @media (min-width: 640px) {
+      .controls {
+        /* already flex, no change needed */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>我的股票看板</h1>
+      <div class="controls">
+        <label>股票代號</label>
+        <input id="symbols-input" type="text" placeholder="2330">
+        <button id="update-button">立即新增</button>
+      </div>
+    </header>
+
+    <section>
+      <table>
+        <thead>
+          <tr>
+            <th>股票</th>
+            <th>中文名稱</th>
+            <th>最新價</th>
+            <th>漲跌</th>
+            <th>漲跌幅</th>
+            <th>成交量</th>
+            <th>交易記錄</th>
+            <th>現存股數</th>
+          </tr>
+        </thead>
+        <tbody id="stock-table-body">
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      <p>自動更新頻率：<span id="refresh-interval">12 秒</span> &nbsp;|&nbsp; 最後更新：<span id="last-updated">尚未更新</span></p>
+      <p>即時報價來源：Fugle Market Data API</p>
+    </footer>
+  </div>
+
+  <script>
+    const REFRESH_MS = 12000;
+    const STOCKLIST_KEY = 'stockList';
+    const NOTES_KEY = 'stockNotes';
+    const HOLDINGS_KEY = 'stockHoldings';
+
+    const refreshIntervalSpan = document.getElementById('refresh-interval');
+    const lastUpdatedSpan = document.getElementById('last-updated');
+    const symbolsInput = document.getElementById('symbols-input');
+    const updateButton = document.getElementById('update-button');
+    const tableBody = document.getElementById('stock-table-body');
+
+    let refreshTimer = null;
+
+    // --- stockList 管理 ---
+    // 格式: [{id: "2330", visible: true}, ...]
+    function loadStockList() {
+      try {
+        const raw = localStorage.getItem(STOCKLIST_KEY);
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) return list;
+        }
+      } catch {}
+      return [];
+    }
+
+    function saveStockList(list) {
+      localStorage.setItem(STOCKLIST_KEY, JSON.stringify(list));
+    }
+
+    function getVisibleSymbols() {
+      return loadStockList().filter(s => s.visible).map(s => s.id);
+    }
+
+    // --- 通用欄位存取 ---
+    function loadField(key, symbol) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        return data[symbol] || '';
+      } catch { return ''; }
+    }
+
+    function saveField(key, symbol, value) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        if (value) {
+          data[symbol] = value;
+        } else {
+          delete data[symbol];
+        }
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch (err) {
+        console.warn('儲存失敗:', err);
+      }
+    }
+
+    // --- 新增 / toggle 股票 ---
+    function addOrToggleStock(symbolId) {
+      const list = loadStockList();
+      const existing = list.find(s => s.id === symbolId);
+
+      if (existing) {
+        if (existing.visible) {
+          const yes = confirm(`股票 ${symbolId} 已在列表中，是否要關閉顯示？\n（資料與交易記錄會保留）`);
+          if (yes) {
+            existing.visible = false;
+            saveStockList(list);
+          }
+        } else {
+          existing.visible = true;
+          saveStockList(list);
+        }
+      } else {
+        list.push({ id: symbolId, visible: true });
+        saveStockList(list);
+      }
+    }
+
+    // --- 格式化 ---
+    function formatNumber(value) {
+      return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+    }
+
+    // --- 表格列 ---
+    function createRow(stock) {
+      const tr = document.createElement('tr');
+      let changeClass;
+
+      if (stock.changePercent === 0) {
+        changeClass = 'status-neutral';
+      } else {
+        changeClass = stock.change >= 0 ? 'status-positive' : 'status-negative';
+      }
+
+      const savedNote = loadField(NOTES_KEY, stock.symbol);
+      const savedHoldings = loadField(HOLDINGS_KEY, stock.symbol);
+
+      tr.innerHTML = `
+        <td>${stock.symbol}</td>
+        <td><a href="https://goodinfo.tw/tw/StockDetail.asp?STOCK_ID=${stock.symbol}" target="_blank" title="公司簡介" style="text-decoration:none">🔗</a> ${stock.name}${stock.industry ? ' <span style="color:var(--muted);font-size:0.75rem">' + stock.industry + '</span>' : ''}</td>
+        <td>${formatNumber(stock.price)}</td>
+        <td class="${changeClass}">${formatNumber(stock.change)}</td>
+        <td class="${changeClass}">${formatNumber(stock.changePercent)}%</td>
+        <td>${stock.volume ? stock.volume.toLocaleString() : '-'}</td>
+        <td><textarea class="note-input" placeholder="備註…" data-symbol="${stock.symbol}">${savedNote}</textarea></td>
+        <td><input class="note-input" type="number" min="0" placeholder="0" value="${savedHoldings}" data-symbol="${stock.symbol}"></td>
+      `;
+
+      const noteInput = tr.querySelector('textarea');
+      noteInput.addEventListener('change', () => {
+        saveField(NOTES_KEY, stock.symbol, noteInput.value);
+      });
+
+      const holdingsInput = tr.querySelector('input[type="number"]');
+      holdingsInput.addEventListener('change', () => {
+        saveField(HOLDINGS_KEY, stock.symbol, holdingsInput.value);
+      });
+
+      return tr;
+    }
+
+    // --- 批次取得即時報價（透過本機 server 代理 TWSE API）---
+    async function fetchQuotes(symbols) {
+      const endpoint = `/api/quote?symbols=${encodeURIComponent(symbols.join(','))}`;
+      const response = await fetch(endpoint, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const json = await response.json();
+      if (json.error) {
+        throw new Error(json.error);
+      }
+      return json.data || [];
+    }
+
+    // --- 更新顯示 ---
+    async function refreshDisplay() {
+      const symbols = getVisibleSymbols();
+
+      if (symbols.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="8">尚未新增任何股票，請輸入代號後按「立即新增」。</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = '<tr><td colspan="8">讀取中…</td></tr>';
+
+      try {
+        const stocks = await fetchQuotes(symbols);
+
+        if (stocks.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="8">找不到股票資料，請檢查代號是否正確。</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = '';
+        stocks.sort((a, b) => a.symbol.localeCompare(b.symbol, undefined, { numeric: true }));
+        stocks.forEach((stock) => tableBody.appendChild(createRow(stock)));
+        lastUpdatedSpan.textContent = new Date().toLocaleString();
+      } catch (error) {
+        tableBody.innerHTML = `<tr><td colspan="8">更新失敗：${error.message}</td></tr>`;
+      }
+    }
+
+    // --- 判斷是否在交易時段（13:32 前）---
+    function isMarketOpen() {
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      return (h < 13) || (h === 13 && m < 32);
+    }
+
+    // --- 自動刷新（13:32 後自動停止）---
+    function startAutoRefresh() {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+      refreshTimer = setInterval(() => {
+        if (isMarketOpen()) {
+          refreshDisplay();
+        } else {
+          clearInterval(refreshTimer);
+          refreshTimer = null;
+          refreshIntervalSpan.textContent = '已收盤';
+        }
+      }, REFRESH_MS);
+    }
+
+    // --- 「立即新增」按鈕 ---
+    updateButton.addEventListener('click', () => {
+      const raw = symbolsInput.value.trim();
+      if (!raw) {
+        alert('請輸入股票代號。');
+        return;
+      }
+
+      // 支援逗號分隔一次加多個
+      const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+      ids.forEach(id => addOrToggleStock(id));
+      symbolsInput.value = '';
+      refreshDisplay();
+    });
+
+    // 按 Enter 等同點擊按鈕
+    symbolsInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        updateButton.click();
+      }
+    });
+
+    // --- 初始化 ---
+    // 若 localStorage 無資料，預設加入幾支股票
+    if (loadStockList().length === 0) {
+      saveStockList([
+        { id: '2330', visible: true },
+        { id: '2454', visible: true },
+        { id: '2317', visible: true },
+      ]);
+    }
+
+    refreshDisplay();
+    startAutoRefresh();
+  </script>
+</body>
+</html>
+
+
