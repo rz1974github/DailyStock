@@ -154,6 +154,13 @@
       width: 12ch;
       min-width: unset;
       text-align: right;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"].note-input::-webkit-outer-spin-button,
+    input[type="number"].note-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
     /* 讓備註欄盡可能佔滿剩下的寬度 */
