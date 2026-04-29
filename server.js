@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * [備用 / BYPASSED]
+ * 此 Node.js 伺服器目前已作為備用。
+ * 專案已轉移回 SPA (Single Page Application) 架構。
+ * 前端 (index.html) 已直接使用瀏覽器發送請求至 Fugle API 與 FinMind API，
+ * 不再依賴此伺服器的 /api/quote 代理。
+ * 保留此檔案與 package.json 僅供未來參考或備用時使用。
+ * ============================================================================
+ */
+
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
