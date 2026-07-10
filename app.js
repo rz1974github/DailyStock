@@ -204,9 +204,21 @@ function saveField(key, symbol, value) {
   } catch {}
 }
 
-function hasNonZeroHoldings(symbol) {
-  const holdingsValue = parseFloat(loadField(HOLDINGS_KEY, symbol));
-  return !isNaN(holdingsValue) && holdingsValue !== 0;
+function parseHoldingsValue(value) {
+  const normalizedValue = String(value ?? '').trim();
+  if (normalizedValue === '') return 0;
+
+  const holdingsValue = parseFloat(normalizedValue);
+  if (isNaN(holdingsValue)) return 0;
+
+  return holdingsValue;
+}
+
+function hasNonZeroHoldings(symbol, holdingsValueOverride = null) {
+  const holdingsValue = holdingsValueOverride === null
+    ? parseHoldingsValue(loadField(HOLDINGS_KEY, symbol))
+    : parseHoldingsValue(holdingsValueOverride);
+  return !isNaN(holdingsValue) && holdingsValue > 0;
 }
 
 function enforceVisibleStocksForHoldings() {
@@ -233,11 +245,8 @@ function addOrToggleStock(symbol) {
   const existing = list.find((item) => item.id === normalized);
 
   if (existing) {
-    if (hasNonZeroHoldings(normalized)) {
-      existing.visible = true;
-    } else {
-      existing.visible = !existing.visible;
-    }
+    const shouldForceVisible = hasNonZeroHoldings(normalized);
+    existing.visible = shouldForceVisible ? true : !existing.visible;
   } else {
     list.push({ id: normalized, visible: true });
   }
@@ -372,7 +381,8 @@ function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCel
   });
 
   holdingsInput.addEventListener('change', () => {
-    saveField(HOLDINGS_KEY, stock.symbol, holdingsInput.value);
+    const latestHoldingsValue = holdingsInput.value;
+    saveField(HOLDINGS_KEY, stock.symbol, latestHoldingsValue);
     enforceVisibleStocksForHoldings();
     refreshDisplay();
   });
