@@ -235,7 +235,7 @@ function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCel
     const costValue = parseFloat(costInput.value);
     const holdingsValue = parseFloat(holdingsInput.value);
 
-    if (!isNaN(costValue) && costValue > 0) {
+    if (!isNaN(costValue) && costValue > 0 && !isNaN(holdingsValue) && holdingsValue > 0) {
       const rate = ((stock.price - costValue) / costValue) * 100;
       returnCell.textContent = formatNumber(rate) + '%';
       returnCell.className = returnCell.className
@@ -244,22 +244,13 @@ function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCel
         .concat(getStatusClass(rate))
         .join(' ');
 
-      if (!isNaN(holdingsValue) && holdingsValue > 0) {
-        const profit = (stock.price - costValue) * holdingsValue;
-        profitCell.textContent = formatNumber(profit);
-        profitCell.className = profitCell.className
-          .split(' ')
-          .filter((className) => !className.startsWith('status-'))
-          .concat(getStatusClass(profit))
-          .join(' ');
-      } else {
-        profitCell.textContent = '-';
-        profitCell.className = profitCell.className
-          .split(' ')
-          .filter((className) => !className.startsWith('status-'))
-          .concat('status-neutral')
-          .join(' ');
-      }
+      const profit = (stock.price - costValue) * holdingsValue;
+      profitCell.textContent = formatNumber(profit);
+      profitCell.className = profitCell.className
+        .split(' ')
+        .filter((className) => !className.startsWith('status-'))
+        .concat(getStatusClass(profit))
+        .join(' ');
     } else {
       returnCell.textContent = '-';
       returnCell.className = returnCell.className
