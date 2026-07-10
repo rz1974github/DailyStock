@@ -19,6 +19,10 @@
       </div>
     </header>
 
+    <div class="top-status-bar panel">
+      <p class="top-status-text">距上次成功抓取：<span id="seconds-since-refresh">尚未成功抓取</span></p>
+    </div>
+
     <section class="table-section">
       <div class="table-wrapper">
         <table>
@@ -83,8 +87,8 @@
             </svg>
             GitHub
           </button>
-          <button id="export-button" class="btn-secondary action-button" title="儲存清單與備註">📤 上傳</button>
-          <button id="import-button" class="btn-secondary action-button" title="匯入清單與備註">📥 下載</button>
+          <button id="export-button" class="btn-secondary action-button" title="將清單與備註存成檔案">💾 存檔</button>
+          <button id="import-button" class="btn-secondary action-button" title="從檔案讀入清單與備註">📂 讀檔</button>
         </div>
         <div class="footer-source-row">
           <p class="footer-text">即時報價來源：Fugle Market Data API</p>
@@ -119,8 +123,8 @@
       <div class="modal-actions modal-actions-split">
         <button id="modal-github-cancel" class="btn-secondary">關閉</button>
         <div class="modal-action-group">
-          <button id="modal-github-download" class="btn-secondary modal-download-button" title="從 Gist 下載並覆蓋本地">☁️ 下載</button>
-          <button id="modal-github-upload" class="modal-upload-button" title="將本地資料上傳至 Gist">☁️ 上傳</button>
+          <button id="modal-github-download" class="btn-secondary modal-download-button" title="從 Gist 下載並覆蓋本地">☁️ GitHub 下載</button>
+          <button id="modal-github-upload" class="modal-upload-button" title="將本地資料上傳至 Gist">☁️ GitHub 上傳</button>
         </div>
       </div>
     </div>

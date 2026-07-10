@@ -40,6 +40,26 @@ body {
   margin-bottom: 8px;
 }
 
+.top-status-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.22);
+  backdrop-filter: blur(8px);
+}
+
+.top-status-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 h1 {
   margin: 0;
   font-size: 1.15rem;
@@ -202,13 +222,64 @@ p {
   color: var(--text);
 }
 
-.stock-card-change {
+.stock-card-collapsed-metrics {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.stock-card-collapsed-metrics-hidden {
+  display: none;
+}
+
+.stock-card-collapsed-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stock-card-collapsed-conditional {
+  display: none;
+}
+
+.stock-card-collapsed-conditional.is-visible {
+  display: inline-flex;
+}
+
+.stock-card-collapsed-change-row {
+  flex-wrap: wrap;
+}
+
+.stock-card-collapsed-value {
   font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.stock-card-holdings-field {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  width: fit-content;
+  max-width: none;
+}
+
+.stock-card-holdings-input {
+  width: 84px;
+  min-height: 32px;
+}
+
+.stock-card-holdings-field .stock-card-label {
+  line-height: 32px;
+  white-space: nowrap;
 }
 
 .stock-card-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -234,6 +305,16 @@ p {
 .stock-card-column-right {
   justify-content: flex-start;
   gap: 12px;
+}
+
+.stock-card-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.stock-card-inline-field {
+  min-width: 0;
 }
 
 .stock-card-metric {
@@ -746,6 +827,10 @@ footer p {
     width: 100%;
   }
 
+  .top-status-bar {
+    width: 100%;
+  }
+
   .pagination-bar {
     flex-direction: column;
     align-items: flex-start;
@@ -823,6 +908,11 @@ footer p {
     width: 100%;
   }
 
+  .top-status-bar {
+    top: 6px;
+    width: 100%;
+  }
+
   .pagination-nav,
   .pagination-size,
   .modal-actions,
@@ -875,13 +965,66 @@ footer p {
     align-items: flex-start;
   }
 
+  .stock-card-header {
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .stock-card-symbol {
+    font-size: 1.35rem;
+  }
+
+  .stock-card-industry,
+  .stock-card-collapsed-value,
+  .stock-card-volume,
+  .stock-card-label {
+    font-size: 0.74rem;
+  }
+
+  .stock-card-name {
+    margin-top: 4px;
+    font-size: 0.98rem;
+  }
+
+  .stock-card-price-group {
+    gap: 4px;
+  }
+
+  .stock-card-price-row {
+    gap: 10px;
+  }
+
+  .stock-card-price {
+    font-size: 1.12rem;
+  }
+
+  .stock-card-collapsed-metrics {
+    gap: 2px;
+    margin-top: 4px;
+  }
+
+  .stock-card-holdings-field {
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .stock-card-holdings-input {
+    width: 72px;
+    min-height: 28px;
+    padding: 4px 8px;
+  }
+
+  .stock-card-holdings-field .stock-card-label {
+    line-height: 28px;
+  }
+
   .stock-card {
     cursor: pointer;
     transition: padding 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
   }
 
   .stock-card.is-collapsed {
-    padding: 16px 18px;
+    padding: 12px 14px;
   }
 
   .stock-card.is-collapsed .stock-card-header {
@@ -901,10 +1044,6 @@ footer p {
     padding: 26px;
   }
 
-  .stock-card-body {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .footer-last-updated {
     margin-left: 0;
   }
@@ -915,3 +1054,4 @@ footer p {
     overflow-y: auto;
   }
 }
+

@@ -9,6 +9,7 @@ const RECORD_TIME_KEY = 'recordTime';
 
 const refreshIntervalSpan = document.getElementById('refresh-interval');
 const lastUpdatedSpan = document.getElementById('last-updated');
+const secondsSinceRefreshSpan = document.getElementById('seconds-since-refresh');
 const symbolsInput = document.getElementById('symbols-input');
 const updateButton = document.getElementById('update-button');
 const refreshNowButton = document.getElementById('refresh-now-button');
@@ -16,6 +17,8 @@ const tableBody = document.getElementById('stock-table-body');
 const stockCardList = document.getElementById('stock-card-list');
 
 let refreshTimer = null;
+let refreshAgeTimer = null;
+let lastSuccessfulRefreshAt = null;
 
 let currentPage = 1;
 let itemsPerPage = parseInt(localStorage.getItem(ITEMS_PER_PAGE_KEY) || '10', 10);
@@ -201,6 +204,27 @@ function saveField(key, symbol, value) {
   } catch {}
 }
 
+function hasNonZeroHoldings(symbol) {
+  const holdingsValue = parseFloat(loadField(HOLDINGS_KEY, symbol));
+  return !isNaN(holdingsValue) && holdingsValue !== 0;
+}
+
+function enforceVisibleStocksForHoldings() {
+  const list = loadStockList();
+  let changed = false;
+
+  list.forEach((item) => {
+    if (hasNonZeroHoldings(item.id) && !item.visible) {
+      item.visible = true;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    saveStockList(list);
+  }
+}
+
 function addOrToggleStock(symbol) {
   const normalized = symbol.trim();
   if (!normalized) return;
@@ -209,7 +233,11 @@ function addOrToggleStock(symbol) {
   const existing = list.find((item) => item.id === normalized);
 
   if (existing) {
-    existing.visible = !existing.visible;
+    if (hasNonZeroHoldings(normalized)) {
+      existing.visible = true;
+    } else {
+      existing.visible = !existing.visible;
+    }
   } else {
     list.push({ id: normalized, visible: true });
   }
@@ -230,12 +258,21 @@ function getStatusClass(value) {
   return value === 0 ? 'status-neutral' : (value > 0 ? 'status-positive' : 'status-negative');
 }
 
-function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCell, profitCell }) {
+function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCell, profitCell, collapsedReturnCell = null, collapsedProfitCell = null, collapsedMetrics = null }) {
+  const collapsedReturnRow = collapsedReturnCell ? collapsedReturnCell.closest('.stock-card-collapsed-conditional') : null;
+  const collapsedProfitRow = collapsedProfitCell ? collapsedProfitCell.closest('.stock-card-collapsed-conditional') : null;
+
   function updateCalculations() {
     const costValue = parseFloat(costInput.value);
     const holdingsValue = parseFloat(holdingsInput.value);
+    const hasValidCost = !isNaN(costValue) && costValue > 0;
+    const hasHoldings = !isNaN(holdingsValue) && holdingsValue > 0;
 
-    if (!isNaN(costValue) && costValue > 0 && !isNaN(holdingsValue) && holdingsValue > 0) {
+    if (collapsedMetrics) {
+      collapsedMetrics.classList.toggle('stock-card-collapsed-metrics-hidden', false);
+    }
+
+    if (hasValidCost) {
       const rate = ((stock.price - costValue) / costValue) * 100;
       returnCell.textContent = formatNumber(rate) + '%';
       returnCell.className = returnCell.className
@@ -244,13 +281,26 @@ function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCel
         .concat(getStatusClass(rate))
         .join(' ');
 
-      const profit = (stock.price - costValue) * holdingsValue;
-      profitCell.textContent = formatNumber(profit);
-      profitCell.className = profitCell.className
-        .split(' ')
-        .filter((className) => !className.startsWith('status-'))
-        .concat(getStatusClass(profit))
-        .join(' ');
+      if (collapsedReturnCell) {
+        if (collapsedReturnRow) {
+          collapsedReturnRow.classList.toggle('is-visible', hasHoldings);
+        }
+        if (hasHoldings) {
+          collapsedReturnCell.textContent = formatNumber(rate) + '%';
+          collapsedReturnCell.className = collapsedReturnCell.className
+            .split(' ')
+            .filter((className) => !className.startsWith('status-'))
+            .concat(getStatusClass(rate))
+            .join(' ');
+        } else {
+          collapsedReturnCell.textContent = '-';
+          collapsedReturnCell.className = collapsedReturnCell.className
+            .split(' ')
+            .filter((className) => !className.startsWith('status-'))
+            .concat('status-neutral')
+            .join(' ');
+        }
+      }
     } else {
       returnCell.textContent = '-';
       returnCell.className = returnCell.className
@@ -258,12 +308,59 @@ function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCel
         .filter((className) => !className.startsWith('status-'))
         .concat('status-neutral')
         .join(' ');
+
+      if (collapsedReturnCell) {
+        if (collapsedReturnRow) {
+          collapsedReturnRow.classList.remove('is-visible');
+        }
+        collapsedReturnCell.textContent = '-';
+        collapsedReturnCell.className = collapsedReturnCell.className
+          .split(' ')
+          .filter((className) => !className.startsWith('status-'))
+          .concat('status-neutral')
+          .join(' ');
+      }
+    }
+
+    if (hasValidCost && hasHoldings) {
+      const profit = (stock.price - costValue) * holdingsValue;
+      profitCell.textContent = formatNumber(profit);
+      profitCell.className = profitCell.className
+        .split(' ')
+        .filter((className) => !className.startsWith('status-'))
+        .concat(getStatusClass(profit))
+        .join(' ');
+
+      if (collapsedProfitCell) {
+        if (collapsedProfitRow) {
+          collapsedProfitRow.classList.add('is-visible');
+        }
+        collapsedProfitCell.textContent = formatNumber(profit);
+        collapsedProfitCell.className = collapsedProfitCell.className
+          .split(' ')
+          .filter((className) => !className.startsWith('status-'))
+          .concat(getStatusClass(profit))
+          .join(' ');
+      }
+    } else {
       profitCell.textContent = '-';
       profitCell.className = profitCell.className
         .split(' ')
         .filter((className) => !className.startsWith('status-'))
         .concat('status-neutral')
         .join(' ');
+
+      if (collapsedProfitCell) {
+        if (collapsedProfitRow) {
+          collapsedProfitRow.classList.remove('is-visible');
+        }
+        collapsedProfitCell.textContent = '-';
+        collapsedProfitCell.className = collapsedProfitCell.className
+          .split(' ')
+          .filter((className) => !className.startsWith('status-'))
+          .concat('status-neutral')
+          .join(' ');
+      }
     }
   }
 
@@ -276,6 +373,8 @@ function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCel
 
   holdingsInput.addEventListener('change', () => {
     saveField(HOLDINGS_KEY, stock.symbol, holdingsInput.value);
+    enforceVisibleStocksForHoldings();
+    refreshDisplay();
   });
 
   noteInput.addEventListener('input', () => {
@@ -330,6 +429,7 @@ function createCard(stock) {
   const stockUrl = `https://goodinfo.tw/tw/StockDetail.asp?STOCK_ID=${encodeURIComponent(stock.symbol)}`;
   const changePrefix = stock.change > 0 ? '+' : (stock.change < 0 ? '-' : '');
   const changePercentPrefix = stock.changePercent > 0 ? '+' : (stock.changePercent < 0 ? '-' : '');
+  const changeLabel = stock.change > 0 ? '今日漲' : (stock.change < 0 ? '今日跌' : '今日平');
 
   card.className = 'stock-card panel';
   card.dataset.symbol = stock.symbol;
@@ -345,34 +445,37 @@ function createCard(stock) {
           <span class="stock-card-industry">${stock.industry || '-'}</span>
         </div>
         <p class="stock-card-name">${stock.name || stock.symbol}</p>
+        <label class="stock-card-field stock-card-holdings-field">
+          <span class="stock-card-label">股數</span>
+          <input class="note-input stock-card-input stock-card-holdings-input" type="text" inputmode="numeric" value="${holdings}" placeholder="股數">
+        </label>
       </div>
       <div class="stock-card-price-group">
         <div class="stock-card-price-row">
           <span class="stock-card-volume">量 ${stock.volume ? stock.volume.toLocaleString('zh-TW') : '-'}</span>
           <strong class="stock-card-price">${formatNumber(stock.price)}</strong>
         </div>
-        <span class="stock-card-change ${getStatusClass(stock.changePercent)}">${changePrefix}${formatNumber(Math.abs(stock.change))} / ${changePercentPrefix}${formatNumber(Math.abs(stock.changePercent))}%</span>
+        <div class="stock-card-collapsed-metrics stock-card-collapsed-metrics-hidden">
+          <span class="stock-card-collapsed-metric stock-card-collapsed-change-row">
+            <span class="stock-card-label">${changeLabel}</span>
+            <span class="stock-card-value stock-card-collapsed-value ${getStatusClass(stock.changePercent)}">${changePrefix}${formatNumber(Math.abs(stock.change))} / ${changePercentPrefix}${formatNumber(Math.abs(stock.changePercent))}%</span>
+          </span>
+          <span class="stock-card-collapsed-metric stock-card-collapsed-conditional">
+            <span class="stock-card-label">報酬率</span>
+            <span class="stock-card-value stock-card-collapsed-value return-rate-collapsed status-neutral">-</span>
+          </span>
+          <span class="stock-card-collapsed-metric stock-card-collapsed-conditional">
+            <span class="stock-card-label">損益</span>
+            <span class="stock-card-value stock-card-collapsed-value profit-loss-collapsed status-neutral">-</span>
+          </span>
+        </div>
       </div>
     </div>
     <div class="stock-card-body">
-      <div class="stock-card-column stock-card-column-left">
-        <div class="stock-card-field">
+      <div class="stock-card-input-row">
+        <div class="stock-card-field stock-card-inline-field">
           <span class="stock-card-label">成本價</span>
           <input class="note-input stock-card-input" type="text" inputmode="decimal" value="${cost}" placeholder="成本價">
-        </div>
-        <div class="stock-card-field">
-          <span class="stock-card-label">現存股數</span>
-          <input class="note-input stock-card-input" type="text" inputmode="numeric" value="${holdings}" placeholder="股數">
-        </div>
-      </div>
-      <div class="stock-card-column stock-card-column-right">
-        <div class="stock-card-field stock-card-metric">
-          <span class="stock-card-label">報酬率</span>
-          <span class="stock-card-value stock-card-metric-value return-rate-card status-neutral">-</span>
-        </div>
-        <div class="stock-card-field stock-card-metric">
-          <span class="stock-card-label">損益</span>
-          <span class="stock-card-value stock-card-metric-value profit-loss-card status-neutral">-</span>
         </div>
       </div>
     </div>
@@ -385,11 +488,24 @@ function createCard(stock) {
   const inputs = card.querySelectorAll('input');
   const costInput = inputs[0];
   const holdingsInput = inputs[1];
-  const returnCell = card.querySelector('.return-rate-card');
-  const profitCell = card.querySelector('.profit-loss-card');
+  const returnCell = document.createElement('span');
+  const profitCell = document.createElement('span');
+  const collapsedReturnCell = card.querySelector('.return-rate-collapsed');
+  const collapsedProfitCell = card.querySelector('.profit-loss-collapsed');
+  const collapsedMetrics = card.querySelector('.stock-card-collapsed-metrics');
   const noteInput = card.querySelector('textarea');
 
-  bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCell, profitCell });
+  bindStockInputs({
+    stock,
+    costInput,
+    holdingsInput,
+    noteInput,
+    returnCell,
+    profitCell,
+    collapsedReturnCell,
+    collapsedProfitCell,
+    collapsedMetrics
+  });
 
   if (isMobileLayout()) {
     card.addEventListener('click', (event) => {
@@ -441,14 +557,24 @@ async function fetchFugleQuote(symbolId, apiKey) {
     if (!res.ok) return null;
     const data = await res.json();
 
-    const price = data.lastPrice || data.closePrice || data.previousClose || 0;
-    const change = data.change || 0;
-    const changePercent = data.changePercent || 0;
+    const resolvedSymbol = String(data.symbol || symbolId).trim();
+    const resolvedName = String(data.name || '').trim();
+    const price = Number(data.lastPrice || data.closePrice || data.previousClose || 0);
+    const change = Number(data.change || 0);
+    const changePercent = Number(data.changePercent || 0);
     const volume = (data.total && data.total.tradeVolume) || 0;
 
+    const hasValidSymbol = resolvedSymbol === symbolId;
+    const hasValidName = resolvedName !== '' && !/^\d+$/.test(resolvedName);
+    const hasValidPrice = Number.isFinite(price) && price > 0;
+
+    if (!hasValidSymbol || !hasValidName || !hasValidPrice) {
+      return null;
+    }
+
     return {
-      symbol: data.symbol || symbolId,
-      name: data.name || symbolId,
+      symbol: resolvedSymbol,
+      name: resolvedName,
       price,
       change,
       changePercent,
@@ -465,7 +591,34 @@ async function fetchFugleQuote(symbolId, apiKey) {
   }
 }
 
+function updateRefreshAgeDisplay() {
+  if (!lastSuccessfulRefreshAt) {
+    secondsSinceRefreshSpan.textContent = '尚未成功抓取';
+    return;
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - lastSuccessfulRefreshAt) / 1000));
+  secondsSinceRefreshSpan.textContent = `${elapsedSeconds} 秒`;
+}
+
+function markRefreshSuccess() {
+  lastSuccessfulRefreshAt = Date.now();
+  updateRefreshAgeDisplay();
+
+  if (refreshAgeTimer) {
+    clearInterval(refreshAgeTimer);
+  }
+
+  refreshAgeTimer = setInterval(() => {
+    updateRefreshAgeDisplay();
+  }, 1000);
+}
+
 async function fetchQuotes(symbols) {
+  if (!Array.isArray(symbols) || symbols.length === 0) {
+    return [];
+  }
+
   const apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
   if (!apiKey) {
     throw new Error('請先在上方輸入 Fugle API Key');
@@ -533,20 +686,19 @@ async function refreshDisplay() {
     ? allSymbols
     : allSymbols.slice((currentPage - 1) * itemsPerPage, (currentPage - 1) * itemsPerPage + itemsPerPage);
 
-  renderEmptyState('讀取中…');
-
   try {
     const stocks = await fetchQuotes(currentSymbols);
+    const validStocks = stocks.filter((stock) => stock && stock.isRealtime);
 
-    if (stocks.length === 0) {
-      renderEmptyState('找不到股票資料，請檢查代號是否正確。');
+    if (validStocks.length === 0) {
+      lastUpdatedSpan.textContent = '本次抓取資料異常，保留前次畫面';
       return;
     }
 
     tableBody.innerHTML = '';
     stockCardList.innerHTML = '';
     const stockMap = {};
-    stocks.forEach((stock) => {
+    validStocks.forEach((stock) => {
       stockMap[stock.symbol] = stock;
     });
     currentSymbols.forEach((symbol) => {
@@ -558,8 +710,9 @@ async function refreshDisplay() {
     });
 
     lastUpdatedSpan.textContent = new Date().toLocaleString();
+    markRefreshSuccess();
   } catch (error) {
-    renderEmptyState(`更新失敗：${error.message}`);
+    lastUpdatedSpan.textContent = `更新失敗：${error.message}`;
   }
 }
 
@@ -652,6 +805,7 @@ function importDataFromObject(data) {
     const recordTimeInput = document.getElementById('modal-github-record-time');
     if (recordTimeInput) recordTimeInput.value = data[RECORD_TIME_KEY];
   }
+  enforceVisibleStocksForHoldings();
   refreshIntervalSpan.textContent = (refreshMs / 1000) + ' 秒';
   startAutoRefresh();
   currentPage = 1;
@@ -754,7 +908,7 @@ modalGithubUpload.addEventListener('click', async () => {
   };
 
   try {
-    modalGithubUpload.textContent = '上傳中...';
+    modalGithubUpload.textContent = 'GitHub 上傳中...';
     modalGithubUpload.disabled = true;
 
     let url = 'https://api.github.com/gists';
@@ -793,7 +947,7 @@ modalGithubUpload.addEventListener('click', async () => {
   } catch (err) {
     alert('上傳失敗：' + err.message);
   } finally {
-    modalGithubUpload.textContent = '☁️ 上傳';
+    modalGithubUpload.textContent = '☁️ GitHub 上傳';
     modalGithubUpload.disabled = false;
   }
 });
@@ -803,7 +957,7 @@ modalGithubDownload.addEventListener('click', async () => {
   if (!token || !gistId) return alert('請輸入 GitHub Token 與 Gist ID');
 
   try {
-    modalGithubDownload.textContent = '下載中...';
+    modalGithubDownload.textContent = 'GitHub 下載中...';
     modalGithubDownload.disabled = true;
 
     const res = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -826,7 +980,7 @@ modalGithubDownload.addEventListener('click', async () => {
   } catch (err) {
     alert('下載失敗：' + err.message);
   } finally {
-    modalGithubDownload.textContent = '☁️ 下載';
+    modalGithubDownload.textContent = '☁️ GitHub 下載';
     modalGithubDownload.disabled = false;
   }
 });
@@ -850,6 +1004,8 @@ if (loadStockList().length === 0) {
     { id: '2317', visible: true },
   ]);
 }
+
+enforceVisibleStocksForHoldings();
 
 const hasStoredApiKey = !!(localStorage.getItem(API_KEY_STORAGE) || '').trim();
 if (hasStoredApiKey) {
