@@ -7,6 +7,7 @@
   --success: #ef4444;
   --danger: #22c55e;
   --muted: #94a3b8;
+  --holding: #fbbf24;
 }
 
 * {
@@ -254,6 +255,36 @@ p {
 
 .stock-card-collapsed-value {
   font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.stock-card-holding-badge {
+  display: none;
+  margin-left: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--holding);
+  color: #1e1b0f;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stock-card.has-holdings {
+  border-color: rgba(251, 191, 36, 0.55);
+  border-left: 5px solid var(--holding);
+  background:
+    linear-gradient(90deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0) 45%),
+    linear-gradient(180deg, rgba(36, 50, 71, 0.96) 0%, rgba(30, 41, 59, 0.96) 100%);
+}
+
+.stock-card.has-holdings .stock-card-holding-badge {
+  display: inline-block;
+}
+
+.stock-card.has-holdings input[type="text"].note-input.stock-card-holdings-input {
+  border-color: var(--holding);
+  color: var(--holding);
   font-weight: 700;
 }
 

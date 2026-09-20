@@ -267,7 +267,7 @@ function getStatusClass(value) {
   return value === 0 ? 'status-neutral' : (value > 0 ? 'status-positive' : 'status-negative');
 }
 
-function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCell, profitCell, collapsedReturnCell = null, collapsedProfitCell = null, collapsedMetrics = null }) {
+function bindStockInputs({ stock, card = null, costInput, holdingsInput, noteInput, returnCell, profitCell, collapsedReturnCell = null, collapsedProfitCell = null, collapsedMetrics = null }) {
   const collapsedReturnRow = collapsedReturnCell ? collapsedReturnCell.closest('.stock-card-collapsed-conditional') : null;
   const collapsedProfitRow = collapsedProfitCell ? collapsedProfitCell.closest('.stock-card-collapsed-conditional') : null;
 
@@ -276,6 +276,10 @@ function bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCel
     const holdingsValue = parseFloat(holdingsInput.value);
     const hasValidCost = !isNaN(costValue) && costValue > 0;
     const hasHoldings = !isNaN(holdingsValue) && holdingsValue > 0;
+
+    if (card) {
+      card.classList.toggle('has-holdings', hasHoldings);
+    }
 
     if (collapsedMetrics) {
       collapsedMetrics.classList.toggle('stock-card-collapsed-metrics-hidden', false);
@@ -452,6 +456,7 @@ function createCard(stock) {
       <div class="stock-card-title-group">
         <div class="stock-card-title-row">
           <a class="stock-link stock-card-symbol" href="${stockUrl}" target="_blank" rel="noreferrer">${stock.symbol}</a>
+          <span class="stock-card-holding-badge">持有</span>
           <span class="stock-card-industry">${stock.industry || '-'}</span>
         </div>
         <p class="stock-card-name">${stock.name || stock.symbol}</p>
@@ -507,6 +512,7 @@ function createCard(stock) {
 
   bindStockInputs({
     stock,
+    card,
     costInput,
     holdingsInput,
     noteInput,
