@@ -514,6 +514,35 @@ th {
   font-size: 0.8rem;
 }
 
+.row-holding-badge {
+  display: none;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--holding);
+  color: #1e1b0f;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+tbody tr.has-holdings {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.16) 0%, rgba(251, 191, 36, 0.05) 60%, rgba(251, 191, 36, 0) 100%);
+}
+
+tbody tr.has-holdings td:first-child {
+  box-shadow: inset 4px 0 0 var(--holding);
+}
+
+tbody tr.has-holdings .row-holding-badge {
+  display: inline-block;
+}
+
+tbody tr.has-holdings td:nth-child(9) input {
+  border-color: var(--holding);
+  color: var(--holding);
+  font-weight: 700;
+}
+
 tbody tr:last-child td {
   border-bottom: none;
 }

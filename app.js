@@ -267,7 +267,7 @@ function getStatusClass(value) {
   return value === 0 ? 'status-neutral' : (value > 0 ? 'status-positive' : 'status-negative');
 }
 
-function bindStockInputs({ stock, card = null, costInput, holdingsInput, noteInput, returnCell, profitCell, collapsedReturnCell = null, collapsedProfitCell = null, collapsedMetrics = null }) {
+function bindStockInputs({ stock, holdingsTarget = null, costInput, holdingsInput, noteInput, returnCell, profitCell, collapsedReturnCell = null, collapsedProfitCell = null, collapsedMetrics = null }) {
   const collapsedReturnRow = collapsedReturnCell ? collapsedReturnCell.closest('.stock-card-collapsed-conditional') : null;
   const collapsedProfitRow = collapsedProfitCell ? collapsedProfitCell.closest('.stock-card-collapsed-conditional') : null;
 
@@ -277,8 +277,8 @@ function bindStockInputs({ stock, card = null, costInput, holdingsInput, noteInp
     const hasValidCost = !isNaN(costValue) && costValue > 0;
     const hasHoldings = !isNaN(holdingsValue) && holdingsValue > 0;
 
-    if (card) {
-      card.classList.toggle('has-holdings', hasHoldings);
+    if (holdingsTarget) {
+      holdingsTarget.classList.toggle('has-holdings', hasHoldings);
     }
 
     if (collapsedMetrics) {
@@ -411,7 +411,7 @@ function createRow(stock) {
   const stockUrl = `https://goodinfo.tw/tw/StockDetail.asp?STOCK_ID=${encodeURIComponent(stock.symbol)}`;
 
   tr.innerHTML = `
-    <td><a class="stock-link" href="${stockUrl}" target="_blank" rel="noreferrer">${stock.symbol}</a></td>
+    <td><a class="stock-link" href="${stockUrl}" target="_blank" rel="noreferrer">${stock.symbol}</a><span class="row-holding-badge">持有</span></td>
     <td><a class="stock-link" href="${stockUrl}" target="_blank" rel="noreferrer">${stock.name || stock.symbol}</a></td>
     <td>${formatNumber(stock.price)}</td>
     <td class="${getStatusClass(stock.change)}">${formatNumber(stock.change)}</td>
@@ -430,7 +430,7 @@ function createRow(stock) {
   const profitCell = tr.querySelector('.profit-loss-cell');
   const noteInput = tr.querySelector('textarea');
 
-  bindStockInputs({ stock, costInput, holdingsInput, noteInput, returnCell, profitCell });
+  bindStockInputs({ stock, holdingsTarget: tr, costInput, holdingsInput, noteInput, returnCell, profitCell });
 
   return tr;
 }
@@ -500,9 +500,8 @@ function createCard(stock) {
     </div>
   `;
 
-  const inputs = card.querySelectorAll('input');
-  const costInput = inputs[0];
-  const holdingsInput = inputs[1];
+  const costInput = card.querySelector('.stock-card-body input');
+  const holdingsInput = card.querySelector('.stock-card-holdings-input');
   const returnCell = document.createElement('span');
   const profitCell = document.createElement('span');
   const collapsedReturnCell = card.querySelector('.return-rate-collapsed');
@@ -512,7 +511,7 @@ function createCard(stock) {
 
   bindStockInputs({
     stock,
-    card,
+    holdingsTarget: card,
     costInput,
     holdingsInput,
     noteInput,
