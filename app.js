@@ -267,7 +267,7 @@ function getStatusClass(value) {
   return value === 0 ? 'status-neutral' : (value > 0 ? 'status-positive' : 'status-negative');
 }
 
-function bindStockInputs({ stock, holdingsTarget = null, costInput, holdingsInput, noteInput, returnCell, profitCell, collapsedReturnCell = null, collapsedProfitCell = null, collapsedMetrics = null }) {
+function bindStockInputs({ stock, holdingsTarget = null, costInput, holdingsInput, noteInput, returnCell, profitCell, valueCell = null, collapsedReturnCell = null, collapsedProfitCell = null, collapsedMetrics = null }) {
   const collapsedReturnRow = collapsedReturnCell ? collapsedReturnCell.closest('.stock-card-collapsed-conditional') : null;
   const collapsedProfitRow = collapsedProfitCell ? collapsedProfitCell.closest('.stock-card-collapsed-conditional') : null;
 
@@ -279,6 +279,10 @@ function bindStockInputs({ stock, holdingsTarget = null, costInput, holdingsInpu
 
     if (holdingsTarget) {
       holdingsTarget.classList.toggle('has-holdings', hasHoldings);
+    }
+
+    if (valueCell) {
+      valueCell.textContent = hasHoldings ? formatNumber(stock.price * holdingsValue) : '-';
     }
 
     if (collapsedMetrics) {
@@ -420,6 +424,7 @@ function createRow(stock) {
     <td><input class="note-input" type="number" value="${cost}" placeholder="成本價"></td>
     <td class="return-rate-cell status-neutral">-</td>
     <td><input class="note-input" type="number" value="${holdings}" placeholder="股數"></td>
+    <td class="market-value-cell">-</td>
     <td class="profit-loss-cell status-neutral">-</td>
     <td><textarea class="note-input" rows="1" placeholder="輸入記錄">${note}</textarea></td>
   `;
@@ -428,9 +433,10 @@ function createRow(stock) {
   const returnCell = tr.querySelector('.return-rate-cell');
   const holdingsInput = tr.querySelector('td:nth-child(9) input');
   const profitCell = tr.querySelector('.profit-loss-cell');
+  const valueCell = tr.querySelector('.market-value-cell');
   const noteInput = tr.querySelector('textarea');
 
-  bindStockInputs({ stock, holdingsTarget: tr, costInput, holdingsInput, noteInput, returnCell, profitCell });
+  bindStockInputs({ stock, holdingsTarget: tr, costInput, holdingsInput, noteInput, returnCell, profitCell, valueCell });
 
   return tr;
 }
@@ -492,6 +498,10 @@ function createCard(stock) {
           <span class="stock-card-label">成本價</span>
           <input class="note-input stock-card-input" type="text" inputmode="decimal" value="${cost}" placeholder="成本價">
         </div>
+        <div class="stock-card-field stock-card-inline-field">
+          <span class="stock-card-label">現值</span>
+          <span class="stock-card-value stock-card-market-value">-</span>
+        </div>
       </div>
     </div>
     <div class="stock-card-note-group">
@@ -504,6 +514,7 @@ function createCard(stock) {
   const holdingsInput = card.querySelector('.stock-card-holdings-input');
   const returnCell = document.createElement('span');
   const profitCell = document.createElement('span');
+  const valueCell = card.querySelector('.stock-card-market-value');
   const collapsedReturnCell = card.querySelector('.return-rate-collapsed');
   const collapsedProfitCell = card.querySelector('.profit-loss-collapsed');
   const collapsedMetrics = card.querySelector('.stock-card-collapsed-metrics');
@@ -517,6 +528,7 @@ function createCard(stock) {
     noteInput,
     returnCell,
     profitCell,
+    valueCell,
     collapsedReturnCell,
     collapsedProfitCell,
     collapsedMetrics
@@ -543,7 +555,7 @@ function isMobileLayout() {
 }
 
 function renderEmptyState(message) {
-  tableBody.innerHTML = `<tr><td colspan="11">${message}</td></tr>`;
+  tableBody.innerHTML = `<tr><td colspan="12">${message}</td></tr>`;
   stockCardList.innerHTML = `<div class="stock-card-empty panel">${message}</div>`;
 }
 
